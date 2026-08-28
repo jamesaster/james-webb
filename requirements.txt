@@ -1,0 +1,10 @@
+google-api-python-client==2.198.0
+polars==1.43.1
+streamlit==1.60.0
+streamlit-echarts==0.7.0
+google-api-core==2.32.0
+google-auth==2.56.2
+googleapis-common-protos==1.75.0
+supabase==2.31.0
+streamlit-keyup==0.3.0
+openpyxl

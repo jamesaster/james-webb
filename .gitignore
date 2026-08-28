@@ -1,0 +1,30 @@
+# --- (OS & IDEs) ---
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# --- (Virtual Environments) ---
+venv/
+.venv/
+ENV/
+env/
+
+# --- (Python cache & Compiled files) ---
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# --- (Configurations & Secrets) ---
+.env
+*.toml
+
+# --- (Data & Mockup files) ---
+mockup.py
+learn_polars.py
+demo_customer.parquet
+
+# --- (.txt) ---
+*.txt
+!requirements.txt
