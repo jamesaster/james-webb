@@ -8,4 +8,4 @@ googleapis-common-protos==1.75.0
 supabase==2.31.0
 streamlit-keyup==0.3.0
 openpyxl
-psycopg==3.3.4
+psycopg-binary==3.3.4
