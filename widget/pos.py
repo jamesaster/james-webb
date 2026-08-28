@@ -183,8 +183,9 @@ def pos_staff(staff_dict: dict, expander, key: str):
             key     = key,
             label_visibility = 'collapsed'
             )
-        if st.button(":color[:material/sync:]{foreground='#6680B5'}", key='sync' + key):
-            briefcache().clear('staff')
+        if st.button(":color[:material/sync:]{foreground='#6680B5'}", key='sync' + key, help='Refresh staff data'):
+            st.toast('Staff data synced.', icon=':material/check:')
+            # briefcache().clear('staff')
 
     return staff_id
 def pos_metrics(
@@ -294,7 +295,8 @@ def pos_save_button(
         'pay_amount'    : [*payment.values()],
                             **item_dict
     }
-    st.write(payload)
+    with st.popover('**Payload** :grey[[Debug]]', icon=':material/data_object:', width='stretch'):
+        st.write(payload)
     st.button(label='**SAVE**', type='primary', width='stretch', on_click=save_on_click, args=(payload, ))
 #endregion
 
@@ -326,7 +328,7 @@ def lookup_customer(
 
     keyword = st_keyup(
         label       = 'Customer ID',
-        placeholder = 'Search or create...',
+        placeholder = 'Search or create... (Type 0 for sample ID)',
         key         = key,
         debounce    = 200
     )

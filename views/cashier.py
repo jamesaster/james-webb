@@ -48,6 +48,35 @@ off_scroll    = """
 st.html(contain_style)
 st.html(metric_style)
 st.html(off_scroll)
+def header(
+    title   : str,
+    sub     : str | None = None,
+    color   : str = "#83B4DD",
+    size    : str = '1.85rem',
+    weight  : int | str = 600,
+    ):
+    st.html(
+        f"""
+        <div style="
+            font-size:{size};
+            font-weight:{weight};
+            color:{color};
+            line-height:1.3;
+        ">{title}</div>
+        {
+            f'''
+            <div style="
+                font-size:0.78rem;
+                font-weight:400;
+                color:#9AA0A6;
+                line-height:1;
+                margin-top:2px;
+            ">{sub.replace('\n', '<br>')}</div>
+            '''
+            if sub else ''
+        }
+        """
+    )
 #endregion
 
 #region POS cached data / keys
@@ -171,6 +200,7 @@ def the_cashier(
             sp_key    = 'pos_sales_person'
             sp_label  = f':blue[**Sales Person:**] :orange-badge[{staff_dict.get(SS.get(sp_key))}]'
             sp_pander = st.expander(sp_label, icon=':material/manage_accounts:', key='expander_' + sp_key, on_change='rerun')
+            sp_pander.caption(':blue[:material/edit: Confirm selection on collapsing]')
             staff_id  = pos_staff(staff_dict, expander=sp_pander, key=sp_key)
             #endregion
             with st.expander(
@@ -182,6 +212,7 @@ def the_cashier(
                 icon      = ':material/id_card:',
                 on_change = 'rerun'
                 ):
+                st.caption(':blue[:material/edit: Select a customer and collapse to confirm]')
                 cus_dict  = lookup_customer(customer_df) or {}
 
             metrics = pos_metrics(ready_checkout, cus_dict)
@@ -196,7 +227,19 @@ def the_cashier(
                     payment     = payment
                 )
 
-# st.dataframe(fetch_dashboard())
+sub = """
+    <div style="font-size: 0.85rem; color: #6880AA; line-height: 1.5; margin-bottom: 35px; margin-top: 0px;">
+        Click <strong>'Random item'</strong> to mimick scanning a product.
+        <br>
+        Then <strong>'Add'</strong> to basket (Quantity input will switch to Serial selectbox if the product requires).
+        <br>
+        <div style="font-size: 0.75rem; font-style: normal; color: #8AA0C4; margin-top: 5px;">
+        * Product info based on availability and simulated.
+        </div>
+    </div>
+    """
+st.title('Point of Sales')
+st.markdown(sub, unsafe_allow_html=True)
 the_cashier(stock_df, customer_df, serial_dict, staff_dict, inv_list, bar_key, qty_key, serial_key)
 
 

@@ -169,6 +169,13 @@ class brief_cache:
 
     def clear(self, *keys):
         """
+        >>> fetch_jobs = [
+            ('inventory', fetch_inventory),
+            ('customer', fetch_customer),
+            ('invoice', fetch_invoice),
+            ('serial', fetch_serial),
+            ('staff', fetch_staff),
+        ]
         ## New lesson: lock 1 lần toàn bộ != lock nhiều lần 1 hàm
         - Chỉ cần gọi lock ở những vị trí cần chặn race / conflict
         - Toàn bộ process dùng chung 1 `self.lock` cho mọi user/session

@@ -3,8 +3,8 @@ import streamlit as st
 from io import BytesIO
 from pathlib import Path
 from openpyxl.worksheet.datavalidation import DataValidation
-from widget.pos import fetch_inventory
-from src.database import insert_product, insert_ledger, clear_db_cache
+from src.database import insert_product, insert_ledger
+from core import get_sys_brief_cache as briefcache
 SS = st.session_state
 CL = "#779179"
 SS.page_name  = Path(__file__).stem
@@ -27,7 +27,7 @@ st.html("""
     }
     </style>
 """)
-stock_df = fetch_inventory()
+stock_df = briefcache().get('inventory')
 
 @st.cache_data(max_entries=10)
 def read_sheet(kind, byte, header=0):
@@ -163,7 +163,7 @@ def stock_button(
                     or (SS.log_product.get('status') == 'success')
                     ):
                     SS.log_ledger = insert_ledger(ledger_df)
-                clear_db_cache(False)
+                briefcache().clear('inventory', 'serial')
                 st.rerun(scope='fragment')
 @st.fragment
 def stock_input(stock_data: pd.DataFrame):
@@ -263,5 +263,21 @@ def stock_input(stock_data: pd.DataFrame):
     stock_button(product_df, ledger_df, bool_product, bool_ledger)
     #endregion
 
+
+sub = """
+    <div style="font-size: 0.85rem; color: #6880AA; line-height: 1.5; margin-bottom: 35px; margin-top: 0px;">
+        <strong>Sidebar Tools explain:</strong>
+        <br>
+        - Click <strong>Database Diagram</strong> to redirect to dbdiagram.io.
+        <br>
+        - <strong>Download</strong> button save stock control form with current inventory for reference and infomation lookup.
+        <br>
+        - Select <strong>Upload</strong> and choose files, accept xlsx with multiple tab for difference task / batch.
+        <br>
+        - <strong>Execute</strong> to finish.
+    </div>
+    """
+st.title('Inventory Hub')
+st.markdown(sub, unsafe_allow_html=True)
 stock_input(stock_df)
 
