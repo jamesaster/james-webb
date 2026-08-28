@@ -1,0 +1,22 @@
+name: Keep james-webb Awake
+
+on:
+  schedule:
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
+
+jobs:
+  keep-alive:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4.3.0
+
+      - name: Create Empty Commit
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@://github.com"
+          git commit --allow-empty -m "Keepalive ping from GitHub Actions"
+          git push
