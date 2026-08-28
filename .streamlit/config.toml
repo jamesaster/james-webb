@@ -1,0 +1,28 @@
+[logger]
+###level = "debug"
+
+[client]
+###showErrorDetails = true
+showSidebarNavigation = true
+
+[theme]
+font = "'Inter':https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+baseRadius = "12px"
+primaryColor = "#5A94E8"
+textColor = "#49618D"
+base = "light"
+backgroundColor = "white"
+secondaryBackgroundColor = "#ddefff"
+
+
+[theme.sidebar]
+backgroundColor = "#1e223b"
+textColor = "#f1f5f9"
+secondaryBackgroundColor = "#334155"
+
+[server]
+runOnSave = false
+fileWatcherType = "watchdog"
+
+[browser]
+gatherUsageStats = false

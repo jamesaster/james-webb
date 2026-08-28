@@ -18,7 +18,7 @@ __pycache__/
 
 # --- (Configurations & Secrets) ---
 .env
-*.toml
+secrets.toml
 
 # --- (Data & Mockup files) ---
 mockup.py
