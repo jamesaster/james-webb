@@ -290,7 +290,7 @@ def j_engine(
         for i, s in enumerate(legends)
     ]
     return {'series': series_list, 'colors': colors, 'units': units, 'view': view, 'key': key}
-@st.fragment(parallel=True)
+@st.fragment
 def j_charts(
     series : list,
     colors : list,

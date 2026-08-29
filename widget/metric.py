@@ -64,7 +64,7 @@ def dash_engine(df_dated: pl.DataFrame, df_prev: pl.DataFrame):
     last_sync = df_dated.get_column(S.date).tail(1).item()
     return height, prev_dict, curr_dict, last_sync
 
-@st.fragment(parallel=True)
+@st.fragment
 def dash_metric(df_prev: pl.DataFrame, df_dated: pl.DataFrame):
     st.markdown(st_metric_style, unsafe_allow_html=True)
     prev_empty = df_prev.is_empty()

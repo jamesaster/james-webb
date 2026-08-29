@@ -7,6 +7,7 @@ from src import Schema, read_mockup
 from widget.metric import dash_metric
 from widget.sidebar import sideBar_filter, sideBar_view_control
 from widget.echart import transformer, transformer_2, j_charts
+from core import get_sys_brief_cache as briefcache
 
 S  = Schema.Sales
 K  = Schema.Stock
@@ -18,6 +19,7 @@ logging.basicConfig(
     datefmt = '%d-%m-%Y %H:%M:%S'
 )
 
+#region Utils
 pivots_store = {
     'Average Ticket Value (ATV)': {
         'agg_how': {
@@ -217,16 +219,10 @@ def darken(
     l = max(0, l * (1 - amount))
     r, g, b = colorsys.hls_to_rgb(h, l, s)
     return f'#{round(r*255):02X}{round(g*255):02X}{round(b*255):02X}'
-
-if not isinstance(SS.get('df'), pl.DataFrame):
-    SS.df = read_mockup()
+#endregion
 
 def main(df_full: pl.DataFrame):
     st.title('Retail Store Demo Dashboard')
-    # if not 'count' in SS:
-    #     SS.count = 0
-    # SS.count += 1
-    # st.info(SS.count)
 
     #region Sidebar + Metrics
     height    = SS.get('height') or {'height': 320}
@@ -252,11 +248,6 @@ def main(df_full: pl.DataFrame):
         'axs_idx' : [0, 1],
         'colors'  : None,
     }
-    params_1 = transformer(df_final, **config_1)
-    header('Revenue vs. Traffic', color="#77A0C2")
-    j_charts(**params_1, **height)
-    st.space()
-
     config_2 = {
         '_period' : period,
         'view'    : view,
@@ -269,38 +260,53 @@ def main(df_full: pl.DataFrame):
         'axs_idx' : [0, 1],
         'colors'  : ["#A9D0C1", "#6899C7"],
     }
-    params_2 = transformer(df_final, **config_2)
-    header('Promotion vs. Invoice', color="#71AB97")
-    j_charts(**params_2, **height)
-    st.space()
-
-
     metric_3 = st.sidebar.selectbox(
         label   = ':orange[*] **Store Metric**',
         options = pivots_store.keys(),
         key     = (key_3:='sideBar_metrics_3'),
         help    = ':orange[**Pick a metric.**]'
         )
-    params_3 = transformer_2(df_final, period, pivots_store, metric_3, view, key_3)
-    color_3  = darken(params_3['colors'][0])
-    header(metric_3, 'Select metric from the sidebar', color=color_3)
-    j_charts(**params_3, **height)
-    st.space()
-
     metric_4 = st.sidebar.selectbox(
         label   = ':orange[*] **Staff Metric**',
         options = pivots_staff.keys(),
         key     = (key_4:='sideBar_metrics_4'),
         help    = ':orange[**Period: Selecting "Day" auto-forces to "Week".**]'
         )
-    params_4 = transformer_2(df_final, period, pivots_staff, metric_4, view.replace('1d', '1w'), key_4)
-    header(metric_4, 'Select metric from the sidebar', color="#699AAE")
-    j_charts(**params_4, **height)
-    st.space()
+
+    to_render = [
+        {
+            'title': 'Revenue vs. Traffic',
+            'sub': None,
+            'color': '#77A0C2',
+            'params': transformer(df_final, **config_1)
+        },
+        {
+            'title': 'Promotion vs. Invoice',
+            'sub': None,
+            'color': '#71AB97',
+            'params': transformer(df_final, **config_2)
+        },
+        {
+            'title': metric_3,
+            'sub': 'Select metric from the sidebar',
+            'params': (params_3:=transformer_2(df_final, period, pivots_store, metric_3, view, key_3)),
+            'color': darken(params_3['colors'][0])
+        },
+        {
+            'title': metric_4,
+            'sub': 'Select metric from the sidebar',
+            'color': '#699AAE',
+            'params': transformer_2(df_final, period, pivots_staff, metric_4, view.replace('1d', '1w'), key_4)
+        },
+    ]
+    for chart in to_render:
+        header(chart['title'], chart['sub'], color=chart['color'])
+        j_charts(**chart['params'], **height)
+        st.space()
 
     with st.sidebar:
         st.space('xxlarge')
         st.space('xxlarge')
 
 if __name__ == '__main__':
-    main(SS.df)
+    main(briefcache().get('sales_data'))

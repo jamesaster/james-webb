@@ -5,6 +5,7 @@ import polars as pl
 import streamlit as st
 import polars.selectors as cs
 from psycopg.rows import dict_row
+from src import read_mockup
 from core import supreme, get_sys_brief_cache
 logging.basicConfig(
     level   = logging.INFO,
@@ -877,6 +878,7 @@ def clear_db_cache(include_invoice: bool=True):
 #endregion
 
 fetch_jobs = [
+    ('sales_data', read_mockup),
     ('inventory', fetch_inventory),
     ('customer', fetch_customer),
     ('invoice', fetch_invoice),

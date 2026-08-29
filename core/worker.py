@@ -211,6 +211,10 @@ class brief_cache:
         with self.lock: # Atomic action (update 1 loạt)
             self.pocket.update(done_batch)
 
+    def check(self, key):
+        with self.lock:
+            return key in self.pocket
+
     def first_fetch(self):
         pending = []
         for key, func in self.fetch_jobs:
