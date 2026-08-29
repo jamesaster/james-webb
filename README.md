@@ -1,10 +1,25 @@
 # james-webb
+
+![Python](https://img.shields.io/badge/Python-3.14.6-blue.svg?logo=python&logoColor=white)
+![Streamlit](https://img.shields.io/badge/Streamlit-1.60.0-FF4B4B.svg?logo=streamlit&logoColor=white)
+![Streamlit ECharts](https://img.shields.io/badge/Streamlit%20ECharts-0.7.0-E4393C.svg)
+![Polars](https://img.shields.io/badge/Polars-1.43.1-CD792C.svg?logo=polars&logoColor=white)
+![pandas](https://img.shields.io/badge/pandas-3.0.5-150458.svg?logo=pandas&logoColor=white)
+![psycopg](https://img.shields.io/badge/psycopg-3.3.4-336791.svg?logo=postgresql&logoColor=white)
+![OpenPyXL](https://img.shields.io/badge/openpyxl-latest-217346.svg?logo=microsoft-excel&logoColor=white)
+
 A retail analytics dashboard. Built on top of a POS + inventory system I wrote as an excuse to actually learn SQL.
 
 ## What it does
 - **Dashboard**: period-over-period comparisons (any custom range, not just "vs last month"), configurable KPI pivots by store or staff, dual-axis trend charts.
+![Dashboard Metrics](image/dash_1.png)
+![Store & Staff Drill-down](image/dash_2.png)
 - **POS**: barcode scanning, serial-number tracking, multi-method payment, invoice lookup and cancellation.
+![POS Checkout](image/pos.png)
 - **Database**: every stock movement (sales, returns, transfers, adjustments) goes through one ledger table. Stock never goes negative. Concurrent checkouts never oversell the same item, enforced by Postgres advisory locks, not application code.
+![Inventory Hub](image/stock.png)
+Bulk product upsert and ledger insert via XLSX upload — multi-tab batch support for different transaction types (import_do, import_po, adjust_in). Links out to the database diagram for reference.
+
 
 ## Stack
 Streamlit · Neon (PostgreSQL) · Polars · Apache ECharts
