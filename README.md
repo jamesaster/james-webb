@@ -12,7 +12,7 @@ A retail analytics dashboard. Built on top of a POS + inventory system I wrote a
 
 ## What it does
 
-- **Dashboard**: period-over-period comparisons (any custom range, not just "vs last month"), configurable KPI pivots by store or staff, dual-axis trend charts.
+- **Dashboard**: dual-axis trend charts and `14+ formula-derived KPI` pivots -- ATV, UPT, CR, attachment rate, and more. All defined as config dicts (column, aggregation, formula) run through `one shared chart engine`. Store/staff-level pivots are selectable from the sidebar, layered on fully custom date ranges, temporal grain, and any given category-columns filters.
 
 <table>
 <tr>
