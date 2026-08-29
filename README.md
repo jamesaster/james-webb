@@ -11,13 +11,24 @@
 A retail analytics dashboard. Built on top of a POS + inventory system I wrote as an excuse to actually learn SQL.
 
 ## What it does
+
 - **Dashboard**: period-over-period comparisons (any custom range, not just "vs last month"), configurable KPI pivots by store or staff, dual-axis trend charts.
-![Dashboard Metrics](image/dash_1.png)
-![Store & Staff Drill-down](image/dash_2.png)
+
+<table>
+<tr>
+<td><img src="image/dash_1.png" alt="Dashboard Metrics"></td>
+<td><img src="image/dash_2.png" alt="Store & Staff Drill-down"></td>
+</tr>
+</table>
+
 - **POS**: barcode scanning, serial-number tracking, multi-method payment, invoice lookup and cancellation.
+
 ![POS Checkout](image/pos.png)
+
 - **Database**: every stock movement (sales, returns, transfers, adjustments) goes through one ledger table. Stock never goes negative. Concurrent checkouts never oversell the same item, enforced by Postgres advisory locks, not application code.
+
 ![Inventory Hub](image/stock.png)
+
 Bulk product upsert and ledger insert via XLSX upload — multi-tab batch support for different transaction types (import_do, import_po, adjust_in). Links out to the database diagram for reference.
 
 
