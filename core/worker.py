@@ -108,8 +108,15 @@ class supreme_pool:
             ).start()
 
     def _worker_loop(self):
-        result_q = None
+        """
+        Edge-case: Nếu get(timeout) > result_q không đc unpack 
+            > "previous_loop_result_q is not None" > previous_loop_result_q.put((False, e))
+        - Put error vào queue của vòng lặp trước
+        - Solved: Cho result_q = None vào bên trong loop
+        """
+        ### result_q = None
         while self.is_running.is_set():
+            result_q = None
             try:
                 func, arg, kwarg, result_q = self.global_Q.get(timeout=5)
                 result_q.put((True, func(*arg, **kwarg)))

@@ -42,7 +42,6 @@ def read_sheet(kind, byte, header=0):
             return pd.read_excel(byte, sheet_name=None, header=0)
 def upload():
     with st.sidebar:
-        # st.divider()
         st.write('**Choose File**')
         file = st.file_uploader(
             label            = 'Upload file',
@@ -50,6 +49,8 @@ def upload():
             key              = 'upload_stock_file',
             label_visibility = 'collapsed'
         )
+        if st.button('Use sample', width='stretch'):
+            return pd.read_excel('data/universal_upsert _demo.xlsx')
         if not file:
             return
         data = file.getvalue()
@@ -139,7 +140,13 @@ def stock_button(
     ledger_df: pd.DataFrame,
     proceed_product: bool,
     proceed_ledger: bool
-):
+    ):
+    with st.container(horizontal_alignment='center', key='bottom_container_1'):
+        st.space()
+        if st.button('Demo Execute', type='primary', width=150):
+            st.balloons()
+            st.info('Executed', width=150)
+    return
     if SS.get('log_product'):
         st.info(SS.log_product)
         SS.log_product = False
