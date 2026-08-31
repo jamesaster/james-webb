@@ -22,7 +22,7 @@ secondaryBackgroundColor = "#334155"
 
 [server]
 runOnSave = false
-fileWatcherType = "watchdog"
+fileWatcherType = "none"
 
 [browser]
 gatherUsageStats = false
