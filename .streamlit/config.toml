@@ -22,7 +22,6 @@ secondaryBackgroundColor = "#334155"
 
 [server]
 runOnSave = false
-fileWatcherType = "none"
 
 [browser]
 gatherUsageStats = false

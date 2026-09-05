@@ -83,7 +83,8 @@ def dash_metric(df_prev: pl.DataFrame, df_dated: pl.DataFrame):
 
     time_info, date_info = (st.session_state.get('fetch_trigger', 'first').split(maxsplit=1) + [None])[:2]
     last_update = 'Today' if last_sync == today_hanoi() else f'On {date_info}'
-    current_ts  = f':violet-badge[:material/sync: **{last_update}** at  {time_info}] \u2000'
+    # current_ts  = f':violet-badge[:material/sync: **{last_update}** at  {time_info}] \u2000'
+    current_ts  = f':violet-badge[:material/sync: **{'Demo'}** at  {'07:58:25'}] \u2000'
     if prev_empty:
         info = f':green-badge[:material/calendar_today: **Data duration:** Last {height} days (No historical baseline)]'
     elif height == 1:
