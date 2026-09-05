@@ -6,9 +6,8 @@ from pathlib import Path
 from src import Schema, read_mockup
 from widget.metric import dash_metric
 from widget.sidebar import sideBar_filter, sideBar_view_control
-from widget.echart import transformer, transformer_2, j_charts
+from widget.echart import transformer, transformer_2, j_charts, grow_tree, treemap_chart
 from core import get_sys_brief_cache as briefcache
-
 S  = Schema.Sales
 K  = Schema.Stock
 SS = st.session_state
@@ -99,7 +98,6 @@ pivots_store = {
     }
 }
 pivots_staff = {
-    # --- Volume metrics
     'Performance (Revenue)': {
         'groupby': S.staff,
         'agg_how': {
@@ -131,7 +129,6 @@ pivots_staff = {
         'round'  : 0
     },
 
-    # --- Efficiency metrics
     'Attachment Rate': {
         'groupby': S.staff,
         'agg_how': {
@@ -219,6 +216,10 @@ def darken(
     l = max(0, l * (1 - amount))
     r, g, b = colorsys.hls_to_rgb(h, l, s)
     return f'#{round(r*255):02X}{round(g*255):02X}{round(b*255):02X}'
+def html_sub(
+    caption, color, view
+    ):
+    return f'{caption} <span style="color: {color}"><span style="font-weight: 500;">— Period: {view}</span>'
 #endregion
 
 def main(df_full: pl.DataFrame):
@@ -233,15 +234,16 @@ def main(df_full: pl.DataFrame):
     period    = f_bundles['period']
     view      = sideBar_view_control()
     dash_metric(df_prev, df_dated)
-    st.space()
+    st.space('medium')
     #endregion
 
+    #region Charts
     config_1 = {
         '_period' : period,
         'view'    : view,
         'x_col'   : S.date,
         'y_cols'  : [S.revenue, S.traffic],
-        'legends' : None,
+        'legends' : ['Revenue', 'Traffic'],
         'y_aggs'  : ['sum', 'first'],
         'units'   : ['vnđ', 'qty'],
         'types'   : None,
@@ -272,41 +274,49 @@ def main(df_full: pl.DataFrame):
         key     = (key_4:='sideBar_metrics_4'),
         help    = ':orange[**Period: Selecting "Day" auto-forces to "Week".**]'
         )
-
-    to_render = [
+    render_config = [
         {
-            'title': 'Revenue vs. Traffic',
-            'sub': None,
-            'color': '#77A0C2',
-            'params': transformer(df_final, **config_1)
+            'title' : 'Revenue vs. Traffic',
+            'color' : (color_1:='#77A0C2'),
+            'sub'   : html_sub('Click any point for details', color_1, view),
+            'params': transformer(df_final, **config_1) | {'period': period},
         },
         {
-            'title': 'Promotion vs. Invoice',
-            'sub': None,
-            'color': '#71AB97',
-            'params': transformer(df_final, **config_2)
+            'title' : 'Promotion vs. Invoice',
+            'color' : (color_2:='#71AB97'),
+            'sub'   : html_sub('', color_2, view),
+            'params': transformer(df_final, **config_2),
         },
         {
-            'title': metric_3,
-            'sub': 'Select metric from the sidebar',
+            'title' : metric_3,
             'params': (params_3:=transformer_2(df_final, period, pivots_store, metric_3, view, key_3)),
-            'color': darken(params_3['colors'][0])
+            'color' : (color_3:=darken(params_3['colors'][0])),
+            'sub'   : html_sub('Select metric from the sidebar', color_3, view)
         },
         {
-            'title': metric_4,
-            'sub': 'Select metric from the sidebar',
-            'color': '#699AAE',
-            'params': transformer_2(df_final, period, pivots_staff, metric_4, view.replace('1d', '1w'), key_4)
+            'title' : metric_4,
+            'color' : (color_4:='#699AAE'),
+            'sub'   : html_sub('Select metric from the sidebar', color_4, view.replace('1d', '1w')),
+            'params': transformer_2(df_final, period, pivots_staff, metric_4, view.replace('1d', '1w'), key_4),
         },
     ]
-    for chart in to_render:
+    for chart in render_config:
         header(chart['title'], chart['sub'], color=chart['color'])
         j_charts(**chart['params'], **height)
-        st.space()
+        st.space('medium')
 
-    with st.sidebar:
-        st.space('xxlarge')
-        st.space('xxlarge')
+    header('Revenue Distribution', color="#D7B784")
+    tree_seed = {
+        'df'      : df_final,
+        'layers'  : [S.cat, S.subcat, S.prod_name, S.sku],
+        'values'  : {S.revenue: 'Revenue', S.qty: 'Quantity'},
+        'val_unit': ['VNĐ', 'pcs'],
+        'sqrt'    : st.sidebar.pills(':orange[*] **Treemap Display**', ['Fit'], width='stretch') == 'Fit'
+        }
+    treemap_chart(**grow_tree(**tree_seed))
 
+    st.sidebar.space(500)
+    #endregion
+    
 if __name__ == '__main__':
     main(briefcache().get('sales_data'))
