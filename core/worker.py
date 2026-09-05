@@ -217,12 +217,13 @@ class brief_cache:
 
     def first_fetch(self):
         pending = []
+        # Gọi worker liên tục theo batch 1 lượt
         for key, func in self.fetch_jobs:
             result_q = queue.Queue()
             # Tuyệt đối không gọi thẳng supreme_pool()
             get_sys_pool().global_Q.put((func, (), {}, result_q))
             pending.append((key, result_q))
-
+        # Cầm giỏ để chờ kết quả
         for key, result_q in pending:
             status, data = result_q.get()
             if status:

@@ -183,130 +183,6 @@ def insert_customer(customer_df: pl.DataFrame):
         logging.info(f'[insert_customer] {e}')
         return code
 @supreme
-def insert_ledger_slow(input_df: pl.DataFrame):
-    """
-    ## Important Notes
-    - `IS NOT DISTINCT FROM`: dùng để cover cả case `NULL = NULL`.
-        - `var.serial IS NOT DISTINCT FROM cs.serial`
-    - `(VALUES (...)) AS var(col1, col2, ...)`:
-        - tạo relation tạm `var`; tên cột được map theo vị trí của VALUES.
-    - `BOOL_OR(c.serial IS NOT NULL)`:
-        - xác định product đã từng xuất hiện serial hay chưa.
-        - subquery return `NULL` khi product_id mới
-        - `NULL IS NOT FALSE` >>> Pass.
-    - Một batch transaction:
-        - chỉ cần một row dính conflict → `rollback()` toàn bộ batch.
-    """
-    if isinstance(input_df, pd.DataFrame):
-        input_df = pl.from_pandas(input_df)
-    if not isinstance(input_df, pl.DataFrame) or input_df.is_empty():
-        return ''
-
-    actions = ['import_po', 'import_do', 'adjust_in', 'adjust_out', 'transfer', 'rtv']
-    if 'order_id' not in input_df.columns:
-        input_df = input_df.with_columns(
-            pl.lit(None).alias('order_id')
-        )
-
-    valid_mask = input_df.select(
-        pl.all_horizontal(pl.col(['product_id', 'type', 'quantity']).is_not_null())
-        & pl.col('type').is_in(actions)
-        & (pl.col('quantity') > 0)
-        & (pl.col('type').is_in(['sell', 'return']) == pl.col('order_id').is_not_null())
-        # Update serial
-        & (pl.col('serial').is_null() | (pl.col('quantity') == 1))
-        & ~(pl.col('serial').is_not_null().any().over('product_id') & pl.col('serial').is_null().any().over('product_id'))
-    ).to_series()
-    if not valid_mask.all():
-        logging.warning(f'[insert_ledger] Invalid Rows: {input_df.filter(~valid_mask)}')
-        return ''
-    stock_cw = lambda alias: f"""
-        CASE WHEN {alias}.type IN ('import_po', 'import_do', 'adjust_in', 'return')
-            THEN {alias}.quantity
-            ELSE - {alias}.quantity
-        END
-    """
-    ledger_query = f"""
-        --sql
-        WITH
-            traffic_lock AS (
-                SELECT pg_advisory_xact_lock(0001)
-            ),
-            current_stock AS (
-                SELECT
-                    s.product_id,
-                    s.serial,
-                    SUM({stock_cw('s')}) AS quantity
-                FROM stock_ledger s
-                LEFT JOIN traffic_lock
-                    ON true
-                GROUP BY s.product_id, s.serial
-            )
-        INSERT INTO stock_ledger
-            (product_id, serial, type, quantity, order_id, batch_id, transaction_id)
-        SELECT
-            var.product_id,
-            NULLIF(var.serial, ''),
-            var.type,
-            var.quantity,
-            var.order_id,
-            var.batch_id,
-            var.transaction_id
-        FROM ( VALUES (
-                %(product_id)s,
-                %(serial)s::text,
-                %(type)s,
-                %(quantity)s,
-                %(order_id)s::bigint,
-                %(batch_id)s,
-                %(transaction_id)s::text
-            ) ) 
-                AS var (
-                product_id,
-                serial,
-                type,
-                quantity,
-                order_id,
-                batch_id,
-                transaction_id
-            )
-        LEFT JOIN current_stock cs
-            ON var.product_id = cs.product_id
-            AND var.serial IS NOT DISTINCT FROM cs.serial -- means EQUAL
-        WHERE 
-            ({stock_cw('var')} + COALESCE(cs.quantity, 0) >= 0
-            ) AND (
-                NULLIF(var.serial, '') is null
-                OR
-                {stock_cw('var')} + COALESCE(cs.quantity, 0) <= 1
-            ) AND (
-                SELECT NULLIF(var.serial, '') is not null = BOOL_OR(c.serial is not null)
-                FROM current_stock c
-                WHERE var.product_id = c.product_id
-                ) is not false -- new id return null, null is not false > pass
-
-        RETURNING product_id, serial
-        ;
-    """
-
-    try:
-        with psycopg.connect(NEON) as conn:
-            with conn:
-                batch_id = conn.execute("SELECT nextval('ledger_batch_id_seq');").fetchone()[0]
-                payload  = input_df.with_columns(pl.lit(batch_id).alias('batch_id')).to_dicts()
-                with conn.cursor() as curr:
-                    condict = {}
-                    for row in payload:
-                        curr.execute(ledger_query, row)
-                        if curr.fetchone() is None: # None means inserted nothing
-                            condict.setdefault(row['product_id'], []).append(row['serial'])
-                    if condict:
-                        conn.rollback()
-                        return f'[insert_ledger] Rollback. Conflict stock: {condict}'
-                    return f'[insert_ledger] Inserted {len(payload)} records'                
-    except psycopg.Error as e:
-        return f'[insert_ledger] Error: {e}'
-@supreme
 def insert_ledger(input_df: pl.DataFrame):
     """
     ## Important Notes
@@ -593,7 +469,7 @@ def check_out(data: dict):
 #endregion
 
 #region Fetch
-def fetch_customer(neon_key = None):
+def fetch_customer(neon_key=None):
     print('fetch_customer')
     if not neon_key:
         neon_key = NEON
