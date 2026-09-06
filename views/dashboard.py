@@ -237,7 +237,7 @@ def main(df_full: pl.DataFrame):
     st.space('medium')
     #endregion
 
-    #region Charts
+    #region Temporals
     config_1 = {
         '_period' : period,
         'view'    : view,
@@ -304,19 +304,36 @@ def main(df_full: pl.DataFrame):
         header(chart['title'], chart['sub'], color=chart['color'])
         j_charts(**chart['params'], **height)
         st.space('medium')
+    #endregion
 
-    header('Revenue Distribution', color="#D7B784")
-    tree_seed = {
+    #region Tree-map
+    st.sidebar.divider()
+    values_opt = {
+        'Revenue Distribution': {
+            'values'   : {S.revenue: 'Revenue', S.qty: 'Quantity'},
+            'val_unit' : ['VNĐ', 'pcs']
+        },
+        'Quantity Distribution': {
+            'values'   : {S.qty: 'Quantity', S.revenue: 'Revenue'},
+            'val_unit' : ['pcs', 'VNĐ']
+        },
+    }
+    values_key = st.sidebar.selectbox(':green[*] **Treemap Metric**', options=values_opt.keys())
+    add_staff  = st.sidebar.pills(':green[*] **Staff Outer Wrap**', [S.staff], format_func=lambda _: 'On', width='stretch')
+    is_fit     = st.sidebar.pills(':green[*] **Treemap Display**', ['Fit'], width='stretch') == 'Fit'
+    tree_seed  = {
         'df'      : df_final,
-        'layers'  : [S.cat, S.subcat, S.prod_name, S.sku],
-        'values'  : {S.revenue: 'Revenue', S.qty: 'Quantity'},
-        'val_unit': ['VNĐ', 'pcs'],
-        'sqrt'    : st.sidebar.pills(':orange[*] **Treemap Display**', ['Fit'], width='stretch') == 'Fit'
-        }
+        'layers'  : [l for l in [add_staff, S.cat, S.subcat, S.prod_name, S.sku] if l],
+        'values'  : values_opt[values_key]['values'],
+        'val_unit': values_opt[values_key]['val_unit'],
+        'sqrt'    : is_fit
+    }
+    header_suffix = f' ({add_staff.title()})' if add_staff else ''
+    header(f'{values_key}{header_suffix}', color='#D7B784')
     treemap_chart(**grow_tree(**tree_seed))
 
     st.sidebar.space(500)
     #endregion
-    
+
 if __name__ == '__main__':
     main(briefcache().get('sales_data'))
