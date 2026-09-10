@@ -1,5 +1,5 @@
 google-api-python-client==2.198.0
-polars==1.43.1
+polars==1.44.2
 streamlit==1.60.0
 streamlit-echarts==0.7.0
 google-api-core==2.32.0
