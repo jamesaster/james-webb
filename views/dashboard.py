@@ -242,13 +242,13 @@ def main(df_full: pl.DataFrame):
         '_period' : period,
         'view'    : view,
         'x_col'   : S.date,
-        'y_cols'  : [S.revenue, S.traffic],
-        'legends' : ['Revenue', 'Traffic'],
-        'y_aggs'  : ['sum', 'first'],
-        'units'   : ['vnđ', 'qty'],
+        'y_cols'  : [S.revenue, S.traffic, S.qty, S.invoice],
+        'legends' : ['Revenue', 'Traffic', 'Quantity', 'Invoice'],
+        'y_aggs'  : ['sum', 'first', 'sum', 'n_unique'],
+        'units'   : ['VNĐ', 'Visits', 'Items', 'Invoices'],
         'types'   : None,
-        'axs_idx' : [0, 1],
-        'colors'  : None,
+        'axs_idx' : [0, 1, 0, 0],
+        'colors'  : ['#A6C3DA', '#E0A9A9'],
     }
     config_2 = {
         '_period' : period,
@@ -306,30 +306,74 @@ def main(df_full: pl.DataFrame):
         st.space('medium')
     #endregion
 
+    #region Test Scatter (Chưa có ý tưởng)
+    xy_demo = pl.read_csv('data/sample_scatter_data.csv')
+    scatter = xy_demo.select(
+        pl.concat_list('x', 'y').alias('value'),
+        pl.when(pl.col.x >= 20).then(pl.lit('pin')).otherwise(pl.lit('circle')).alias('symbol'),
+        (pl.col.y / 3).round(0).alias('symbolSize')
+    ).to_dicts()
+    scatter_demo = {
+        "name": "Invoice",
+        "type": "scatter",
+        "yAxisIndex": 0,
+        "xAxisIndex": 0,
+        "silent": False,
+        "datasetIndex": 0,
+        "dimensions": None,
+        "encode": None,
+        "emphasis": {
+            "itemStyle": {
+                "opacity": 1,
+                "borderWidth": 2,
+                "borderColor": None,
+                "shadowBlur": 10,
+                "shadowColor": None,
+                "shadowOffsetX": 0,
+                "shadowOffsetY": 0,
+            }
+        },
+        "data": scatter,
+        "z": 0,
+        "symbol": "circle",
+        "symbolSize": 10,
+        "symbolRotate": 0,
+        "symbolKeepAspect": False,
+        "symbolOffset": [0, 0],
+        "large": True,
+        "largeThreshold": 2000,
+        "progressive": 5000,
+        "progressiveThreshold": 3000,
+        "clip": True,
+    }
+    # j_charts([scatter_demo], colors="#92B6FF", units=['qty'], xtype='value', key='scatter_demo')
+    #endregion
+    
     #region Tree-map
-    st.sidebar.divider()
-    values_opt = {
+    values_opt  = {
         'Revenue Distribution': {
             'values'   : {S.revenue: 'Revenue', S.qty: 'Quantity'},
-            'val_unit' : ['VNĐ', 'pcs']
+            'val_unit' : ['VNĐ', 'pcs'],
+            'color'    : "#9097AF",
         },
         'Quantity Distribution': {
             'values'   : {S.qty: 'Quantity', S.revenue: 'Revenue'},
-            'val_unit' : ['pcs', 'VNĐ']
+            'val_unit' : ['pcs', 'VNĐ'],
+            'color'    : '#D7B784',
         },
     }
-    values_key = st.sidebar.selectbox(':green[*] **Treemap Metric**', options=values_opt.keys())
-    add_staff  = st.sidebar.pills(':green[*] **Staff Outer Wrap**', [S.staff], format_func=lambda _: 'On', width='stretch')
-    is_fit     = st.sidebar.pills(':green[*] **Treemap Display**', ['Fit'], width='stretch') == 'Fit'
-    tree_seed  = {
+    values_key  = st.sidebar.selectbox(':green[*] **Treemap Metric**', options=values_opt.keys())
+    tree_opt    = st.sidebar.pills(':green[*] **Treemap Options**', [S.staff, 'Fit'], format_func=lambda x: x.title(), selection_mode='multi', width='stretch')
+    add_staff   = S.staff if S.staff in tree_opt else None
+    tree_seed   = {
         'df'      : df_final,
         'layers'  : [l for l in [add_staff, S.cat, S.subcat, S.prod_name, S.sku] if l],
         'values'  : values_opt[values_key]['values'],
         'val_unit': values_opt[values_key]['val_unit'],
-        'sqrt'    : is_fit
+        'sqrt'    : 'Fit' in tree_opt
     }
-    header_suffix = f' ({add_staff.title()})' if add_staff else ''
-    header(f'{values_key}{header_suffix}', color='#D7B784')
+    tree_sufx   = f' ({add_staff.title()})' if add_staff else ''
+    header(f'{values_key}{tree_sufx}', color=values_opt[values_key]['color'])
     treemap_chart(**grow_tree(**tree_seed))
 
     st.sidebar.space(500)

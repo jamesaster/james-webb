@@ -51,13 +51,13 @@ def dash_engine(df_dated: pl.DataFrame, df_prev: pl.DataFrame):
     ]
     formula = [
         pl.col(S.revenue).alias('Revenue'),
+        pl.col(S.invoice).alias('Transaction'),
+        (pl.col(S.invoice) / pl.col(S.traffic)).alias('Conversion'),
         (pl.col(S.qty) / pl.col(S.invoice)).alias('UPT'),
         (pl.col(S.revenue) / pl.col(S.invoice)).alias('ATV'),
-        pl.col(S.invoice).alias('Invoice'),
-        (pl.col(S.invoice) / pl.col(S.traffic)).alias('Conversion'),
         pl.col(S.traffic).alias('Traffic'),
-        pl.col(S.qty).alias('Item'),
-        pl.col(S.lot).alias('Device')
+        pl.col(S.qty).alias('Unit'),
+        pl.col(S.lot).alias('Device'),
     ]
     prev_dict = prev_lz.group_by(S.date).agg(agg_cfg).fill_null(0).sum().select(formula).collect().row(0, named=True)
     curr_dict = curr_lz.group_by(S.date).agg(agg_cfg).fill_null(0).sum().select(formula).collect().row(0, named=True)

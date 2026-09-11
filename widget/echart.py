@@ -86,6 +86,43 @@ echart_Params = {
                 "borderType": "solid",
             }
         }
+    },
+    'scatter': {
+        "symbol": "circle",
+        "symbolSize": 10,
+        "symbolRotate": 0,
+        "symbolKeepAspect": False,
+        "symbolOffset": [0, 0],
+        "large": True,
+        "largeThreshold": 2000,
+        "progressive": 5000,
+        "progressiveThreshold": 3000,
+        "clip": True,
+        "itemStyle": {
+            "color": None,
+            "opacity": 1,
+            "borderWidth": 0,
+            "borderColor": "#000",
+            "borderType": "solid",
+            "shadowBlur": 0,
+            "shadowColor": None,
+            "shadowOffsetX": 0,
+            "shadowOffsetY": 0,
+        },
+        "emphasis": {
+            "focus": "series",
+            "blurScope": "coordinateSystem",
+            "scale": True,
+            "itemStyle": {
+                "opacity": 1,
+                "borderWidth": 2,
+                "borderColor": None,
+                "shadowBlur": 10,
+                "shadowColor": None,
+                "shadowOffsetX": 0,
+                "shadowOffsetY": 0,
+            }
+        },
     }
 }
 darken_Js     = """
@@ -111,7 +148,7 @@ num_format_Js = """
     }
     """
 
-#region
+#region ♾️
 @supreme
 def transformer(
     df      : pl.DataFrame,
@@ -148,8 +185,10 @@ def transformer(
         raise ValueError('Length of legends, y_cols, types, and units must be equal.')
     if len(legends) != len(set(legends)):
         raise ValueError('Legends name must be unique.')
-    if not set(y_cols).issubset(df.select(cs.numeric()).columns):
-        raise ValueError('y_cols must be number format.')
+    if colors and (zcolor:=len(legends) - len(colors)):
+        colors = colors + ['#ececec'] * zcolor 
+    if not set(y_cols).issubset(df.columns):
+        raise ValueError('y_cols not exist')
     #endregion
 
     #region Aggregate - Lazy nhanh gấp 3
@@ -319,6 +358,7 @@ def j_charts(
     series : list,
     colors : list,
     units  : list,
+    xtype  : str='category',
     view   : str='1d',
     key    : str='ultimate_v0',
     height : int=300,
@@ -370,6 +410,55 @@ def j_charts(
                 return res;
             }}
         """)
+    value_formatter = JsCode(f"""
+            function(params) {{
+                const units = {units_json};
+
+                // Scatter có thể trigger theo 'item' (params = object đơn)
+                // hoặc 'axis' (params = mảng) -> ép về mảng cho đồng nhất
+                const list = Array.isArray(params) ? params : [params];
+                if (!list.length) return '';
+
+                // Với scatter, x là số (value axis) -> lấy từ value[0]
+                // thay vì dựa vào .name (chỉ có ý nghĩa với category axis)
+                const first = list[0];
+                let xVal = Array.isArray(first.value) ? first.value[0] : first.name;
+
+                let res = '<div style="font-size:13px; font-weight:bold; margin-bottom:10px;">' + xVal + '</div>';
+
+                list.forEach(item => {{
+                    // Scatter data: [x, y] -> lấy y (phần tử thứ 2)
+                    let val = Array.isArray(item.value) ? item.value[1] : item.value;
+                    if (val === null || val === undefined) return;
+
+                    let idx = item.seriesIndex;
+                    let type = (units && units[idx]) ? units[idx] : 'qty';
+
+                    let displayVal = '';
+
+                    if (type === 'pct') {{
+                        displayVal = (val * 100).toFixed(1) + '%';
+                    }} else if (type === 'decimal') {{
+                        displayVal = Number(val).toLocaleString(undefined, {{
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2
+                        }});
+                    }} else if (type === 'qty') {{
+                        displayVal = Math.round(val).toLocaleString();
+                    }} else {{
+                        displayVal = Math.round(val).toLocaleString() + ' ' + type;
+                    }}
+
+                    res += '<div style="display:flex;justify-content:space-between;gap:20px; margin-bottom: 6px;">' +
+                        '<span style="font-weight:400;">' + item.marker + item.seriesName + '</span>' +
+                        '<span style="font-weight:550; font-size:13px; font-variant-numeric:tabular-nums; font-family: \\'JetBrains Mono\\', \\'Roboto Mono\\';">' + displayVal + '</span>' +
+                        '</div>';
+                }});
+
+                return res;
+            }}
+        """)
+
     y_label_formatter = JsCode(f"""
         function(value) {{
             const units = {units_json};
@@ -432,7 +521,7 @@ def j_charts(
             "left": '10', "right": '10', "bottom": '0', "top": '15%', "containLabel": False 
         },
         "xAxis": {
-            "type": "category",
+            "type": xtype,
             "boundaryGap": True, # Cách 2 lề
             "axisLabel": {
                 "color": '#999',
@@ -490,8 +579,7 @@ def j_charts(
         )
 @supreme
 def _compute_range(
-    period, view, idx, sales_data
-) -> pl.DataFrame:
+    period, view, idx, sales_data) -> pl.DataFrame:
     spine = pl.select(period).with_columns(pl.all().dt.truncate(view)).unique()
     try:
         date_spine = spine[idx].to_series()
@@ -558,7 +646,9 @@ def j_callback(
         st.dataframe(result, column_config=col_config, placeholder='-', height=700)
 
     j_dialog(df)
+#endregion
 
+#region 🌳
 @supreme
 def grow_tree(
     df       : pl.DataFrame,
@@ -600,9 +690,11 @@ def grow_tree(
         for col in layers:
             child = cursor['children']
             if (item:=row[col]) is None:
-                item = 'undefined'
-            if item not in child:
+                item  = 'undefined'
+                color = '#88afba'
+            else:
                 color = colors[int(hashlib.md5(item.encode()).hexdigest(), 16) % len(colors)]
+            if item not in child:
                 child[item] = {'name': item, **{v: 0 for v in temp_vals}, 'itemStyle' : {'color': color}, 'children': {}}
             for val in temp_vals:
                 child[item][val] += row[val]
@@ -677,10 +769,8 @@ def treemap_chart(
     label_js        = JsCode(f"""
         function (params) {{
             {formatter}
-            var _2nd_str  = (secondVal && secondVal > 0) ? ' {{second_Style|' + formatNumber(secondVal) + ' {_rest_unit[0] if _rest_unit else ''}}}' : '';
-            // *_Style là tham số tự đặt, tùy biến ở options.series.label.rich
-            var separator = (secondVal && secondVal > 0) ? ' |' : '';
-            return params.name + '\\n{{first_Style|' + formatted + percentStr + separator + '}}' + _2nd_str;
+            var _2nd_str  = (secondVal && secondVal > 0) ? ' {{second_Style|' + '› ' + formatNumber(secondVal) + ' {_rest_unit[0] if _rest_unit else ''}}}' : '';
+            return params.name + '\\n{{first_Style|' + formatted + percentStr + '}}' + _2nd_str;
         }}
     """)
     options         = {
@@ -723,7 +813,7 @@ def treemap_chart(
                 "upperLabel": {
                     "show": True,
                     "height": 29,
-                    "color": "#3E4D74",
+                    "color": "#868EA8",
                     "fontWeight": 700,
                     "fontSize": 12,
                     "formatter": label_js,
@@ -731,7 +821,7 @@ def treemap_chart(
                         "first_Style": {
                             "fontWeight": "500",
                             "fontSize": 13,
-                            "color": "#6D7C88"
+                            "color": "#9097AF"
                         },
                         "second_Style": {
                             "fontWeight": "600",
@@ -747,19 +837,19 @@ def treemap_chart(
                     "formatter": label_js,
                     "textStyle": {
                         "color": "#ffffff",
-                        "fontSize": 11.5
+                        "fontSize": 12,
+                        "fontWeight": "bold"
                     },
                     # Trong js label_js có tạo custom first_Style / second_Style
                     "rich": {
                         "first_Style": {
-                            "fontWeight": "bold",
+                            "fontWeight": "450",
                             "fontSize": 12,
                             "color": "#fff",
                             "lineHeight": 24
                         },
                         "second_Style": {
-                            "fontWeight": "600",
-                            "fontSize": 12,
+                            "fontWeight": "500",
                             "color": "#3E4D74",
                         }
                     }
@@ -769,11 +859,18 @@ def treemap_chart(
                     "borderWidth": 1.5,
                     "gapWidth": 1,
                     "borderRadius": 6
+                },
+                "emphasis": {
+                    "itemStyle": {
+                        "color": "#9097AF",
+                        "opacity": 0.01,
+                        "shadowBlur": 12,
+                        "borderRadius": 6,
+                        "shadowColor": "rgba(0,0,0,0.2)"
+                    }
                 }
             }
         ],
     }
     st_echarts(options=options, key=chart_id, height=f'{height}px')
 #endregion
-
-
